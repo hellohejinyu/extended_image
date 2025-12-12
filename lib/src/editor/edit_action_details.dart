@@ -131,27 +131,31 @@ class EditActionDetails {
         focalPoint = Offset(
           focalPoint.dx
               .clamp(
-                  _screenDestinationRect!.left, _screenDestinationRect!.right)
+                _screenDestinationRect!.left,
+                _screenDestinationRect!.right,
+              )
               .toDouble(),
           focalPoint.dy
               .clamp(
-                  _screenDestinationRect!.top, _screenDestinationRect!.bottom)
+                _screenDestinationRect!.top,
+                _screenDestinationRect!.bottom,
+              )
               .toDouble(),
         );
 
         _screenDestinationRect = Rect.fromLTWH(
-            focalPoint.dx -
-                (focalPoint.dx - _screenDestinationRect!.left) * scaleDelta,
-            focalPoint.dy -
-                (focalPoint.dy - _screenDestinationRect!.top) * scaleDelta,
-            _screenDestinationRect!.width * scaleDelta,
-            _screenDestinationRect!.height * scaleDelta);
+          focalPoint.dx -
+              (focalPoint.dx - _screenDestinationRect!.left) * scaleDelta,
+          focalPoint.dy -
+              (focalPoint.dy - _screenDestinationRect!.top) * scaleDelta,
+          _screenDestinationRect!.width * scaleDelta,
+          _screenDestinationRect!.height * scaleDelta,
+        );
 
         preTotalScale = totalScale;
 
         delta = Offset.zero;
       }
-
       /// move
       else {
         if (_screenDestinationRect != screenCropRect) {
@@ -174,7 +178,11 @@ class EditActionDetails {
     final double height = rect.height * totalScale;
     final Offset center = rect.center;
     return Rect.fromLTWH(
-        center.dx - width / 2.0, center.dy - height / 2.0, width, height);
+      center.dx - width / 2.0,
+      center.dy - height / 2.0,
+      width,
+      height,
+    );
   }
 
   /// The path of the processed image, displayed on the screen
@@ -189,11 +197,12 @@ class EditActionDetails {
       rect.bottomRight,
       rect.bottomLeft,
     ];
-    final List<Offset> rotatedCorners = corners.map((Offset corner) {
-      final Vector4 cornerVector = Vector4(corner.dx, corner.dy, 0.0, 1.0);
-      final Vector4 newCornerVector = result.transform(cornerVector);
-      return Offset(newCornerVector.x, newCornerVector.y);
-    }).toList();
+    final List<Offset> rotatedCorners =
+        corners.map((Offset corner) {
+          final Vector4 cornerVector = Vector4(corner.dx, corner.dy, 0.0, 1.0);
+          final Vector4 newCornerVector = result.transform(cornerVector);
+          return Offset(newCornerVector.x, newCornerVector.y);
+        }).toList();
 
     return Path()
       ..moveTo(rotatedCorners[0].dx, rotatedCorners[0].dy)
@@ -224,10 +233,7 @@ class EditActionDetails {
         center ?? _layoutRect?.center ?? _screenDestinationRect!.center;
     final Matrix4 result = Matrix4.identity();
 
-    result.translate(
-      origin.dx,
-      origin.dy,
-    );
+    result.translate(origin.dx, origin.dy);
     if (rotationYRadians != 0) {
       result.multiply(Matrix4.rotationY(rotationYRadians));
     }
@@ -280,22 +286,27 @@ class EditActionDetails {
       final Matrix4 result = getTransform();
       result.invert();
       final Rect rect = _screenDestinationRect!;
-      final List<Offset> rectVertices = <Offset>[
-        screenCropRect!.topLeft,
-        screenCropRect!.topRight,
-        screenCropRect!.bottomRight,
-        screenCropRect!.bottomLeft,
-      ].map((Offset element) {
-        final Vector4 cornerVector = Vector4(element.dx, element.dy, 0.0, 1.0);
-        final Vector4 newCornerVector = result.transform(cornerVector);
-        return Offset(newCornerVector.x, newCornerVector.y);
-      }).toList();
+      final List<Offset> rectVertices =
+          <Offset>[
+            screenCropRect!.topLeft,
+            screenCropRect!.topRight,
+            screenCropRect!.bottomRight,
+            screenCropRect!.bottomLeft,
+          ].map((Offset element) {
+            final Vector4 cornerVector = Vector4(
+              element.dx,
+              element.dy,
+              0.0,
+              1.0,
+            );
+            final Vector4 newCornerVector = result.transform(cornerVector);
+            return Offset(newCornerVector.x, newCornerVector.y);
+          }).toList();
 
-      final double scaleDelta = scaleToMatchRect(
-        rectVertices,
-        rect,
-      );
-      if (scaleDelta != double.negativeInfinity) {
+      final double scaleDelta = scaleToMatchRect(rectVertices, rect);
+      // apply it only scaleDelta is small.
+      if (scaleDelta != double.negativeInfinity &&
+          totalScale * (1 - scaleDelta) <= 0.05) {
         screenFocalPoint = null;
         preTotalScale = totalScale;
         totalScale = totalScale * scaleDelta;
@@ -307,28 +318,28 @@ class EditActionDetails {
     final Matrix4 result = getTransform();
     result.invert();
     final Rect rect = _screenDestinationRect!;
-    final List<Offset> rectVertices = <Offset>[
-      screenCropRect!.topLeft,
-      screenCropRect!.topRight,
-      screenCropRect!.bottomRight,
-      screenCropRect!.bottomLeft,
-    ].map((Offset element) {
-      final Vector4 cornerVector = Vector4(element.dx, element.dy, 0.0, 1.0);
-      final Vector4 newCornerVector = result.transform(cornerVector);
-      return Offset(newCornerVector.x, newCornerVector.y);
-    }).toList();
+    final List<Offset> rectVertices =
+        <Offset>[
+          screenCropRect!.topLeft,
+          screenCropRect!.topRight,
+          screenCropRect!.bottomRight,
+          screenCropRect!.bottomLeft,
+        ].map((Offset element) {
+          final Vector4 cornerVector = Vector4(
+            element.dx,
+            element.dy,
+            0.0,
+            1.0,
+          );
+          final Vector4 newCornerVector = result.transform(cornerVector);
+          return Offset(newCornerVector.x, newCornerVector.y);
+        }).toList();
 
-    final double scaleDelta = scaleToFit(
-      rectVertices,
-      rect,
-    );
+    final double scaleDelta = scaleToFit(rectVertices, rect);
     return scaleDelta;
   }
 
-  double scaleToMatchRect(
-    List<Offset> rectVertices,
-    Rect rect,
-  ) {
+  double scaleToMatchRect(List<Offset> rectVertices, Rect rect) {
     double scaleDelta = double.negativeInfinity;
     final Offset center = rect.center;
     for (final Offset element in rectVertices) {
@@ -347,10 +358,7 @@ class EditActionDetails {
     return scaleDelta;
   }
 
-  double scaleToFit(
-    List<Offset> rectVertices,
-    Rect rect,
-  ) {
+  double scaleToFit(List<Offset> rectVertices, Rect rect) {
     double scaleDelta = 0.0;
 
     int contains = 0;
@@ -378,16 +386,22 @@ class EditActionDetails {
     final Matrix4 result = getTransform();
     result.invert();
     final Rect rect = _screenDestinationRect!;
-    final List<Offset> rectVertices = <Offset>[
-      screenCropRect!.topLeft,
-      screenCropRect!.topRight,
-      screenCropRect!.bottomRight,
-      screenCropRect!.bottomLeft,
-    ].map((Offset element) {
-      final Vector4 cornerVector = Vector4(element.dx, element.dy, 0.0, 1.0);
-      final Vector4 newCornerVector = result.transform(cornerVector);
-      return Offset(newCornerVector.x, newCornerVector.y);
-    }).toList();
+    final List<Offset> rectVertices =
+        <Offset>[
+          screenCropRect!.topLeft,
+          screenCropRect!.topRight,
+          screenCropRect!.bottomRight,
+          screenCropRect!.bottomLeft,
+        ].map((Offset element) {
+          final Vector4 cornerVector = Vector4(
+            element.dx,
+            element.dy,
+            0.0,
+            1.0,
+          );
+          final Vector4 newCornerVector = result.transform(cornerVector);
+          return Offset(newCornerVector.x, newCornerVector.y);
+        }).toList();
 
     final double scaleDelta = _scaleToFitImageRect(
       rectVertices,
@@ -410,15 +424,23 @@ class EditActionDetails {
         contains++;
         continue;
       }
-      final List<Offset> list =
-          getLineRectIntersections(rect, element, cropRectCenter);
+      final List<Offset> list = getLineRectIntersections(
+        rect,
+        element,
+        cropRectCenter,
+      );
       if (list.isNotEmpty) {
         scaleDelta = min(
-            scaleDelta,
-            sqrt(pow(list[0].dx - cropRectCenter.dx, 2) +
-                    pow(list[0].dy - cropRectCenter.dy, 2)) /
-                sqrt(pow(element.dx - cropRectCenter.dx, 2) +
-                    pow(element.dy - cropRectCenter.dy, 2)));
+          scaleDelta,
+          sqrt(
+                pow(list[0].dx - cropRectCenter.dx, 2) +
+                    pow(list[0].dy - cropRectCenter.dy, 2),
+              ) /
+              sqrt(
+                pow(element.dx - cropRectCenter.dx, 2) +
+                    pow(element.dy - cropRectCenter.dy, 2),
+              ),
+        );
       }
     }
     if (contains == 4 || scaleDelta == double.maxFinite) {
@@ -443,16 +465,22 @@ class EditActionDetails {
 
     final Matrix4 result = getTransform();
     result.invert();
-    final List<Offset> rectVertices = <Offset>[
-      screenCropRect!.topLeft,
-      screenCropRect!.topRight,
-      screenCropRect!.bottomRight,
-      screenCropRect!.bottomLeft,
-    ].map((Offset element) {
-      final Vector4 cornerVector = Vector4(element.dx, element.dy, 0.0, 1.0);
-      final Vector4 newCornerVector = result.transform(cornerVector);
-      return Offset(newCornerVector.x, newCornerVector.y);
-    }).toList();
+    final List<Offset> rectVertices =
+        <Offset>[
+          screenCropRect!.topLeft,
+          screenCropRect!.topRight,
+          screenCropRect!.bottomRight,
+          screenCropRect!.bottomLeft,
+        ].map((Offset element) {
+          final Vector4 cornerVector = Vector4(
+            element.dx,
+            element.dy,
+            0.0,
+            1.0,
+          );
+          final Vector4 newCornerVector = result.transform(cornerVector);
+          return Offset(newCornerVector.x, newCornerVector.y);
+        }).toList();
 
     for (final Offset element in rectVertices) {
       if (rect.containsOffset(element)) {
@@ -483,16 +511,22 @@ class EditActionDetails {
     }
     final Matrix4 result = getTransform();
     result.invert();
-    final List<Offset> rectVertices = <Offset>[
-      screenCropRect!.topLeft,
-      screenCropRect!.topRight,
-      screenCropRect!.bottomRight,
-      screenCropRect!.bottomLeft,
-    ].map((Offset element) {
-      final Vector4 cornerVector = Vector4(element.dx, element.dy, 0.0, 1.0);
-      final Vector4 newCornerVector = result.transform(cornerVector);
-      return Offset(newCornerVector.x, newCornerVector.y);
-    }).toList();
+    final List<Offset> rectVertices =
+        <Offset>[
+          screenCropRect!.topLeft,
+          screenCropRect!.topRight,
+          screenCropRect!.bottomRight,
+          screenCropRect!.bottomLeft,
+        ].map((Offset element) {
+          final Vector4 cornerVector = Vector4(
+            element.dx,
+            element.dy,
+            0.0,
+            1.0,
+          );
+          final Vector4 newCornerVector = result.transform(cornerVector);
+          return Offset(newCornerVector.x, newCornerVector.y);
+        }).toList();
 
     Offset focalPoint = screenFocalPoint ?? _screenDestinationRect!.center;
 
@@ -506,12 +540,13 @@ class EditActionDetails {
     );
 
     Rect rect = Rect.fromLTWH(
-        focalPoint.dx -
-            (focalPoint.dx - _screenDestinationRect!.left) * scaleDelta,
-        focalPoint.dy -
-            (focalPoint.dy - _screenDestinationRect!.top) * scaleDelta,
-        _screenDestinationRect!.width * scaleDelta,
-        _screenDestinationRect!.height * scaleDelta);
+      focalPoint.dx -
+          (focalPoint.dx - _screenDestinationRect!.left) * scaleDelta,
+      focalPoint.dy -
+          (focalPoint.dy - _screenDestinationRect!.top) * scaleDelta,
+      _screenDestinationRect!.width * scaleDelta,
+      _screenDestinationRect!.height * scaleDelta,
+    );
     bool fixed = false;
     for (final Offset element in rectVertices) {
       if (rect.containsOffset(element)) {
@@ -548,16 +583,22 @@ class EditActionDetails {
     final Matrix4 result = getTransform();
     final Rect rect = _screenDestinationRect!;
     result.invert();
-    final List<Offset> rectVertices = <Offset>[
-      screenCropRect.topLeft,
-      screenCropRect.topRight,
-      screenCropRect.bottomRight,
-      screenCropRect.bottomLeft,
-    ].map((Offset element) {
-      final Vector4 cornerVector = Vector4(element.dx, element.dy, 0.0, 1.0);
-      final Vector4 newCornerVector = result.transform(cornerVector);
-      return Offset(newCornerVector.x, newCornerVector.y);
-    }).toList();
+    final List<Offset> rectVertices =
+        <Offset>[
+          screenCropRect.topLeft,
+          screenCropRect.topRight,
+          screenCropRect.bottomRight,
+          screenCropRect.bottomLeft,
+        ].map((Offset element) {
+          final Vector4 cornerVector = Vector4(
+            element.dx,
+            element.dy,
+            0.0,
+            1.0,
+          );
+          final Vector4 newCornerVector = result.transform(cornerVector);
+          return Offset(newCornerVector.x, newCornerVector.y);
+        }).toList();
 
     final List<Offset> list = rectVertices.toList();
     bool hasOffsetOutSide = false;
@@ -570,8 +611,11 @@ class EditActionDetails {
 
       final Offset center = (element + other) / 2;
 
-      final List<Offset> lineRectIntersections =
-          getLineRectIntersections(_screenDestinationRect!, element, center);
+      final List<Offset> lineRectIntersections = getLineRectIntersections(
+        _screenDestinationRect!,
+        element,
+        center,
+      );
       if (lineRectIntersections.isNotEmpty) {
         hasOffsetOutSide = true;
         list[i] = lineRectIntersections.first;
@@ -580,11 +624,17 @@ class EditActionDetails {
 
     if (hasOffsetOutSide) {
       result.invert();
-      final List<Offset> newOffsets = list.map((Offset element) {
-        final Vector4 cornerVector = Vector4(element.dx, element.dy, 0.0, 1.0);
-        final Vector4 newCornerVector = result.transform(cornerVector);
-        return Offset(newCornerVector.x, newCornerVector.y);
-      }).toList();
+      final List<Offset> newOffsets =
+          list.map((Offset element) {
+            final Vector4 cornerVector = Vector4(
+              element.dx,
+              element.dy,
+              0.0,
+              1.0,
+            );
+            final Vector4 newCornerVector = result.transform(cornerVector);
+            return Offset(newCornerVector.x, newCornerVector.y);
+          }).toList();
 
       final Rect rect1 = Rect.fromPoints(newOffsets[0], newOffsets[2]);
 
@@ -606,9 +656,11 @@ class EditActionDetails {
     final double s2X = p4.dx - p3.dx;
     final double s2Y = p4.dy - p3.dy;
 
-    final double s = (-s1Y * (p1.dx - p3.dx) + s1X * (p1.dy - p3.dy)) /
+    final double s =
+        (-s1Y * (p1.dx - p3.dx) + s1X * (p1.dy - p3.dy)) /
         (-s2X * s1Y + s1X * s2Y);
-    final double t = (s2X * (p1.dy - p3.dy) - s2Y * (p1.dx - p3.dx)) /
+    final double t =
+        (s2X * (p1.dy - p3.dy) - s2Y * (p1.dx - p3.dx)) /
         (-s2X * s1Y + s1X * s2Y);
 
     if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
@@ -633,20 +685,32 @@ class EditActionDetails {
       intersections.add(topIntersection);
     }
 
-    final Offset? bottomIntersection =
-        getIntersection(p1, p2, bottomLeft, bottomRight);
+    final Offset? bottomIntersection = getIntersection(
+      p1,
+      p2,
+      bottomLeft,
+      bottomRight,
+    );
     if (bottomIntersection != null) {
       intersections.add(bottomIntersection);
     }
 
-    final Offset? leftIntersection =
-        getIntersection(p1, p2, topLeft, bottomLeft);
+    final Offset? leftIntersection = getIntersection(
+      p1,
+      p2,
+      topLeft,
+      bottomLeft,
+    );
     if (leftIntersection != null) {
       intersections.add(leftIntersection);
     }
 
-    final Offset? rightIntersection =
-        getIntersection(p1, p2, topRight, bottomRight);
+    final Offset? rightIntersection = getIntersection(
+      p1,
+      p2,
+      topRight,
+      bottomRight,
+    );
     if (rightIntersection != null) {
       intersections.add(rightIntersection);
     }

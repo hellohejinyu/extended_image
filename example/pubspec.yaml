@@ -17,7 +17,6 @@ dependencies:
   image: any
   image_editor: any
   intl: any
-  js: any
   like_button: any
   loading_more_list: any
   oktoast: any
@@ -26,7 +25,6 @@ dependencies:
   url_launcher: any
   vm_service: any
   wechat_assets_picker: any
-
 
 dependency_overrides:
   extended_image:
